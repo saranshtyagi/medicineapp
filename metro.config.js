@@ -1,11 +1,24 @@
-const {getDefaultConfig, mergeConfig} = require('@react-native/metro-config');
+const { getDefaultConfig, mergeConfig } = require("@react-native/metro-config");
+const { withNativeWind } = require("nativewind/metro");
 
-/**
- * Metro configuration
- * https://reactnative.dev/docs/metro
- *
- * @type {import('@react-native/metro-config').MetroConfig}
- */
-const config = {};
+const defaultConfig = getDefaultConfig(__dirname);
 
-module.exports = mergeConfig(getDefaultConfig(__dirname), config);
+const config = mergeConfig(defaultConfig, {
+  transformer: {
+    // Enable inline requires
+    inlineRequires: true,
+    // Add CSS transformer
+    babelTransformerPath: require.resolve("react-native-css-transformer"),
+  },
+  resolver: {
+    // Remove 'css' from assetExts if present
+    assetExts: defaultConfig.resolver.assetExts.filter(ext => ext !== "css"),
+    // Add 'css' to sourceExts so Metro can parse it
+    sourceExts: [...defaultConfig.resolver.sourceExts, "css"],
+  },
+});
+
+// Wrap with NativeWind
+module.exports = withNativeWind(config, {
+  input: "./global.css", // Your Tailwind entry
+});
