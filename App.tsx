@@ -26,6 +26,7 @@ import {
 import { NavigationContainer } from '@react-navigation/native';
 import RootNavigator from './src/navigation/navigators/RootNavigator';
 import { navigationRef, setIsNavigationReady } from './src/navigation/Navigation';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 type SectionProps = PropsWithChildren<{
   title: string;
@@ -75,10 +76,21 @@ function App(): React.JSX.Element {
    */
   const safePadding = '5%';
 
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry:1,
+        staleTime:1000 * 60 * 5,
+      }
+    }
+  })
+
   return (
-    <NavigationContainer ref={navigationRef} onReady={setIsNavigationReady}>
-      <RootNavigator /> 
-    </NavigationContainer>
+    <QueryClientProvider client={queryClient}>
+      <NavigationContainer ref={navigationRef} onReady={setIsNavigationReady}>
+        <RootNavigator /> 
+      </NavigationContainer>
+    </QueryClientProvider>
   );
 }
 
