@@ -53,7 +53,9 @@ const CategoryScreen = () => {
             <Pressable className="p-2" onPress={() => navigation.goBack()}>
               <Ionicons name="arrow-back" size={22} color="#000" />
             </Pressable>
-            <Pressable onPress={() => setModalVisible(true)} className="flex-row items-center gap-1">
+            <Pressable
+              onPress={() => setModalVisible(true)}
+              className="flex-row items-center gap-1">
               <Text>{selectedCategoryName}</Text>
               <Ionicons name="chevron-down-outline" size={18} color="#000" />
             </Pressable>
@@ -83,11 +85,22 @@ const CategoryScreen = () => {
         />
       </View>
       <Modal visible={modalVisible} transparent animationType="slide">
-        <View className='flex-1 bg-black/40 justify-center p-6'>
-          <View className='bg-white rounded-2xl max-h-[70%] p-4'>
-            <Text className='text-lg font-bold mb-3'>Categories</Text>
+        <View className="flex-1 bg-black/40 justify-center p-6">
+          <View className="bg-white rounded-2xl max-h-[70%] p-4">
+            <Text className="text-lg font-bold mb-3">Categories</Text>
             <ScrollView>
-
+              {categories?.map((cat: any) => (
+                <Pressable key={cat.id}>
+                  <Text
+                    className={`text-base ${
+                      selectedCategoryName == cat.name
+                        ? 'font-bold'
+                        : 'font-normal'
+                    }`}>
+                    {cat?.name}
+                  </Text>
+                </Pressable>
+              ))}
             </ScrollView>
           </View>
         </View>
