@@ -90,7 +90,10 @@ const CategoryScreen = () => {
             <Text className="text-lg font-bold mb-3">Categories</Text>
             <ScrollView>
               {categories?.map((cat: any) => (
-                <Pressable key={cat.id}>
+                <Pressable className='py-2' onPress={() => {
+                  setSelectedCategoryName(cat.name);
+                  setModalVisible(false);
+                }} key={cat.id}>
                   <Text
                     className={`text-base ${
                       selectedCategoryName == cat.name
