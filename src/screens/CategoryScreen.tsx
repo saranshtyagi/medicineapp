@@ -102,6 +102,9 @@ const CategoryScreen = () => {
                 </Pressable>
               ))}
             </ScrollView>
+            <Pressable onPress={() => setModalVisible(false)}>
+              <Text className='text-red-500 font-semibold text-center'>Close</Text>
+            </Pressable>
           </View>
         </View>
       </Modal>
