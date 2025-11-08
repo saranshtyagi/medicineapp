@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   FlatList,
   Image,
+  Modal,
 } from 'react-native';
 import React, {useMemo, useState} from 'react';
 import {useNavigation} from '@react-navigation/native';
@@ -16,6 +17,7 @@ import {useAuthStore} from '../store/useAuthStore';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useAddressStore} from '../store/useAddressStore';
 import Ionicons from '@react-native-vector-icons/ionicons';
+import { MainRoutes } from '../navigation/Routes';
 
 const SlotChip = ({
   label,
@@ -37,12 +39,45 @@ const SlotChip = ({
     </Text>
   </Pressable>
 );
+
+const AddressRow = ({item, isSelected, onSelect, onRemove}:any) => (
+  <Pressable onPress={() => onSelect(item.id)} className='bg-white rounded-lg p-4 mb-3 shadow'>
+    <View className='flex-row'>
+      <View className='w-10 h-10 rounded-md bg-green-50 items-center justify-center mr-3'>
+        <Ionicons name='home-outline' size={20} color='#16a34a' />
+      </View>
+      <View className='flex-1'>
+        <View className='flex-row justify-between items-start'>
+          <Text className='font-semibold text-base'>{item?.type}</Text>
+          <View className='flex-row items-center'>
+            <View className={`w-4 h-4 rounded-full ${isSelected ? 'bg-green-600' : 'border border-gray-300'}`} />
+          </View>
+        </View>
+        <Text className='text-gray-700 mt-1 font-medium'>{item?.name}</Text>
+        <Text className='text-gray-500 text-sm mt-1'>{item?.flatNo}</Text>
+        <Text className='text-gray-500 text-sm'>{item?.blockName}, {item?.buildingName}, {item?.landmark}</Text>
+        <Text className='text-gray-500 text-sm'>{item?.locality} - {item?.pincode}</Text>
+        <View className='flex-row mt-3'>
+          <Pressable className='mr-6'>
+            <Text className='text-purple-600 font-semibold'>Edit</Text>
+          </Pressable>
+          <Pressable onPress={() => onRemove(item.id)} >
+            <Text className='text-purple-600 font-semibold'>Remove</Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  </Pressable>
+)
+
 const CheckoutScreen = () => {
   const navigation = useNavigation();
   const {items: cartItems, clearCart} = useCartStore();
   const {user} = useAuthStore();
   const {addresses, selectedAddressId, selectAddress, removeAddress} =
     useAddressStore();
+
+  const [query, setQuery] = useState('');
 
   const [modalVisible, setModalVisible] = useState(false);
   const [deliverySlot, setDeliverySlot] = useState('ASAP');
@@ -95,7 +130,9 @@ const CheckoutScreen = () => {
                     {selectedAddress?.name}
                   </Text>
                 </View>
-                <Pressable className="px-2 py-1">
+                <Pressable
+                  onPress={() => setModalVisible(true)}
+                  className="px-2 py-1">
                   <Text className="text-purple-600 font-semibold">Change</Text>
                 </Pressable>
               </View>
@@ -238,20 +275,66 @@ const CheckoutScreen = () => {
           )}
         </View>
       </ScrollView>
-      <View className='absolute left-4 right-4 bottom-6'>
-        <Pressable className={`bg-green-600 rounded-2xl py-4 flex-row justify-between items-center px-5 shadow-lg ${isProcessing ? 'opacity-50' : ''}`}>
+      <View className="absolute left-4 right-4 bottom-6">
+        <Pressable
+          className={`bg-green-600 rounded-2xl py-4 flex-row justify-between items-center px-5 shadow-lg ${
+            isProcessing ? 'opacity-50' : ''
+          }`}>
           <View>
-            <Text className='text-white font-semibold'>Proceed to Payment</Text>
-            <Text className='text-white text-sm opacity-90'>
+            <Text className="text-white font-semibold">Proceed to Payment</Text>
+            <Text className="text-white text-sm opacity-90">
               {cartTotalItems} items{cartTotalItems !== 1 ? 's' : ''} ·{' '}
               {cartTotalPrice.toFixed(0)}
             </Text>
           </View>
-          <View className='bg-white px-4 py-2 rounded-lg'>
-            <Text>{isProcessing ? "Processing" : "CONTINUE"}</Text>
+          <View className="bg-white px-4 py-2 rounded-lg">
+            <Text>{isProcessing ? 'Processing' : 'CONTINUE'}</Text>
           </View>
         </Pressable>
       </View>
+      <Modal visible={modalVisible} animationType="slide" transparent>
+        <View className="flex-1 bg-black/40 justify-end">
+          <View className="bg-white rounded-t-3xl p-4 h-3/4">
+            <View className="flex-row justify-between items-center mb-4">
+              <Text className="text-lg font-bold">Select Address</Text>
+              <Pressable>
+                <Ionicons name="close" size={21} color="#374151" />
+              </Pressable>
+            </View>
+            <View className="flex-row items-center bg-gray-100 rounded-lg px-3 py-2 mb-3">
+              <Ionicons name="search" size={18} color="#9CA3AF" />
+              <TextInput
+                value={query}
+                onChangeText={setQuery}
+                placeholder="Search Adresses"
+                className="ml-2 flex-1 text-sm"
+              />
+            </View>
+            <FlatList 
+            data={addresses?.filter(a => a.type.toLowerCase().includes(query.toLowerCase()) || a.locality.toLowerCase().includes(query.toLowerCase()))}
+            renderItem={({item}) => (
+              <AddressRow
+              item={item}
+              isSelected={selectedAddressId == item?.id}
+              onRemove={(id:string) => removeAddress(id)}
+              onSelect={(id:string) => {
+                selectAddress(id)
+              }}
+              />
+            )}
+            />
+            <Pressable className='border border-dashed border-purple-600 rounded-lg p-3 mt-2' onPress={() => {
+              setModalVisible(false)
+              navigation.navigate(MainRoutes.AddAddress as any)
+            } }>
+              <Text className='text-purple-600 text-center font-semibold'>+ ADD NEW ADDRESS</Text>
+            </Pressable>
+            <Pressable className='bg-green-600 py-3 rounded-2xl mt-4' onPress={() => setModalVisible(false)}> 
+              <Text className='text-white font-bold text-center'>DONE</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
