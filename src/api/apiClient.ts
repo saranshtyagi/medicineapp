@@ -1,4 +1,4 @@
-import axios from 'axios'; 
+import axios, { AxiosError } from 'axios'; 
 
 export interface Category {
     id: string;
@@ -25,6 +25,7 @@ export const api = axios.create({
 
 api.interceptors.request.use(
     (config) => {
+        console.log("📌 Requesting:", (config.baseURL || '') + (config.url || ''));
         return config;
     }, 
     (error) => Promise.reject(error)
@@ -40,4 +41,39 @@ api.interceptors.response.use(
 
 let authInterceptor:number | null = null;
 
+export function setAuthToken(token: string | null) {
+    if(authInterceptor !== null) {
+        api.interceptors.request.eject(authInterceptor);
+    }
+    if(token) {
+        authInterceptor = api.interceptors.request.use((config) => {
+            config.headers.Authorization = `Bearer ${token}`;
+            return config;
+        })
+    }
+    else {
+        authInterceptor = null;
+    }
+}
+
 export const fetchCategories = async() => (await api.get("/categories")).data as Category;
+
+// export const signUp = async(data:{email:string, password:string, phone:string}) => (await api.post("/auth/signup", data)).data;
+export const signUp = async(data:any) => {
+    console.log("⏳ signUp() called");
+    console.log("📌 Posting to:", API_BASE_URL + "/auth/signup");
+    console.log("📦 Payload:", data);
+
+    try {
+        const res = await api.post("/auth/signup", data);
+        console.log("✅ Response:", res.data);
+        return res.data;
+    } catch (err) {
+        const axiosErr = err as AxiosError;
+        console.log("❌ Axios Error URL:", (axiosErr?.config?.baseURL || '') + (axiosErr?.config?.url || ''));
+        console.log("❌ Axios Error Response:", axiosErr?.response?.data);
+        throw err;
+    }
+};
+
+export const login = async(data:{email:string, password:string}) => (await api.post("/auth/login", data)).data;
