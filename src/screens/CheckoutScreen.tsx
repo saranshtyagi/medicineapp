@@ -9,6 +9,7 @@ import {
   FlatList,
   Image,
   Modal,
+  Alert,
 } from 'react-native';
 import React, {useMemo, useState} from 'react';
 import {useNavigation} from '@react-navigation/native';
@@ -18,6 +19,8 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {useAddressStore} from '../store/useAddressStore';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { MainRoutes } from '../navigation/Routes';
+import { createOrder, createRazorpayOrder } from '../api/apiClient';
+import RazorpayCheckout from 'react-native-razorpay';
 
 const SlotChip = ({
   label,
@@ -101,6 +104,80 @@ const CheckoutScreen = () => {
     (sum, it) => sum + it.price * (it.quantity || 0),
     0,
   );
+
+  const handlePayment = async() => {
+    if(!selectedAddress) {
+      Alert.alert("Error", "Please select a delivery address before proceeding.");
+      return;
+    }
+    if(cartItems.length === 0) {
+      Alert.alert("Error", "Your cart is empty.");
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      if(paymentMethod === "COD") {
+        const orderData = {
+          items: cartItems.map(item => ({productId: item?.id, quantity:item?.quantity, price: item?.price})),
+          totalAmount: cartTotalPrice,
+          address: selectedAddress,
+          paymentMethod: "COD",
+        }
+        const order = await createOrder(orderData);
+        clearCart();
+        // navigation.navigate("OrderConfirmation", {order});
+      }
+      else {
+        //online payment flow with Razorpay
+        const orderData = {
+          amount: cartTotalPrice * 100, 
+          currency: "INR",
+          receipt: `receipt_${Date.now}`,
+        }
+        const razorpayOrder = await createRazorpayOrder(orderData);
+        const cleanedContact = (user?.phone || '9999999999').replace(/\D/g, '').slice(-10);
+        const options = {
+          description: 'Order Payment',
+          image: 'https://www.shutterstock.com/image-vector/secure-checkout-icon-black-white-600nw-2484143929.jpg',
+          currency: razorpayOrder.currency,
+          key: process.env.RAZORPAY_KEY_ID || '',
+          amount: razorpayOrder.amount.toString(),
+          name: 'MedicineApp',
+          order_id: razorpayOrder.id,
+          prefill: {
+            email: user?.email || 'test@example.com',
+            contact: cleanedContact,
+            name: user?.name || 'Test User',
+          }, 
+          theme: {color: '#16a34a'},
+          retry: {enabled: true, max_count: 3},
+        }; 
+        const data = await RazorpayCheckout.open(options).catch((error) => {
+          console.error("Razorpay open error", error); 
+          throw error;
+        })
+        if(data.razorpay_payment_id) {
+          const fullOrderData = {
+            items: cartItems?.map(item => ({productId:item?.id, quantity:item?.quantity, price: item?.price})),
+            totalAmount: cartTotalPrice,
+            address: selectedAddress,
+            paymentMethod: "Online",
+            paymentId: data?.razorpay_payment_id,
+            razorpayOrderId: razorpayOrder?.id,
+          }
+          const order = await createOrder(fullOrderData);
+          clearCart();
+          // navigation.navigate("OrderConfirmation", {order});
+        }
+      }
+    } catch (error) {
+      console.log("Payment Error:", error);
+      Alert.alert("Payment Failed", "There was an issue processing your payment. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
       <View>

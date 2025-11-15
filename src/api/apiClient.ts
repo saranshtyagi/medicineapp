@@ -14,7 +14,7 @@ export interface Product {
     description?: string;
 }
 
-const API_BASE_URL='http://10.170.169.4:3001/api/v1';
+const API_BASE_URL='http://10.255.214.4:3001/api/v1';
 
 export const api = axios.create({
     baseURL: API_BASE_URL,
@@ -77,3 +77,6 @@ export const signUp = async(data:any) => {
 };
 
 export const login = async(data:{email:string, password:string}) => (await api.post("/auth/login", data)).data;
+export const createRazorpayOrder = async (data: {amount:number; currency:string; receipt:string}) => (await api.post("/orders/create-razorpay-order", data)).data;
+export const createOrder = async (data: {items: {productId: string; quantity:number; price:number}[]; totalAmount:number;address:any; paymentMethod:string; paymentId?:string; razorpayOrderId?:string}) => (await api.post("/orders", data)).data;
+export const fetchMyOrders = async() => (await api.get("/orders/my-orders")).data;
