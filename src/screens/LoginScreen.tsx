@@ -5,12 +5,26 @@ import {
   TouchableOpacity,
   View,
   Image,
+  Alert,
 } from 'react-native';
 import React from 'react';
 import {Controller, useForm} from 'react-hook-form';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AuthRoutes, AuthStackParamList } from '../navigation/Routes';
+import {useNavigation} from '@react-navigation/native';
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {AuthRoutes, AuthStackParamList} from '../navigation/Routes';
+import {useAuthStore} from '../store/useAuthStore';
+import {googleLogin, login} from '../api/apiClient';
+import {
+  GoogleSignin,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
+
+GoogleSignin.configure({
+  webClientId:"1035962711654-phu6j7v8h4roqt4trhcok9u56sllimsc.apps.googleusercontent.com", 
+  iosClientId:"",
+  androidClientId:"1035962711654-bn76ptkj9a7jupuh6gee23udrod1ktbi.apps.googleusercontent.com",
+  scopes: ['profile', 'email'],
+})
 
 type FormData = {
   email: string;
@@ -21,7 +35,46 @@ const LoginScreen = () => {
   const {control, handleSubmit} = useForm<FormData>({
     defaultValues: {email: '', password: ''},
   });
-  const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
+  const {setAuth} = useAuthStore();
+
+  const onSubmit = async (data: FormData) => {
+    try {
+      const {user, token} = await login(data);
+      setAuth(user, token);
+    } catch (error) {
+      console.error('Login Error', error);
+      Alert.alert('Error', 'Invalid credentials');
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      await GoogleSignin.hasPlayServices({showPlayServicesUpdateDialog: true});
+      const userInfo = await GoogleSignin.signIn();
+
+      if (userInfo.data && userInfo.data.idToken) {
+        const {user, token} = await googleLogin(userInfo?.data?.idToken);
+        setAuth(user, token);
+      } else {
+        throw new Error('No idToken received');
+      }
+    } catch (error: any) {
+      console.error('Google Sign-In error:', error, 'Code:', error.code);
+
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        Alert.alert('Cancelled', 'Google sign-in was cancelled');
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        Alert.alert('Error', 'Google sign-in is already in progress');
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        Alert.alert('Error', 'Google Play Services is not available');
+      } else {
+        Alert.alert('Error', `Google sign-in failed: ${error.message}`);
+      }
+    }
+  };
+
+  const navigation =
+    useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
   return (
     <View className="flex-1 bg-white p-4 justify-center">
       <Text className="text-2xl font-bold text-center text-green-600">
@@ -65,22 +118,28 @@ const LoginScreen = () => {
           />
         )}
       />
-      <TouchableOpacity className="bg-green-600 p-3 rounded-full mt-6">
+      <TouchableOpacity
+        onPress={handleSubmit(onSubmit)}
+        className="bg-green-600 p-3 rounded-full mt-6">
         <Text className="text-white text-center font-bold">CONTINUE</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        // onPress={handleGoogleSignIn}
+        onPress={handleGoogleSignIn}
         className="bg-white border border-gray-300 p-3 rounded-full mt-4 flex-row justify-center items-center">
         <Image
           source={{
             uri: 'https://upload.wikimedia.org/wikipedia/commons/3/3c/Google_Favicon_2025.svg',
           }}
-          className='w-5 h-5 mr-2'
+          className="w-5 h-5 mr-2"
         />
-        <Text className='text-gray-800 font-bold'>Sign in with Google</Text>
+        <Text className="text-gray-800 font-bold">Sign in with Google</Text>
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => navigation.navigate(AuthRoutes.SignUp)} className='mt-4'>
-        <Text className='text-center text-blue-600'>Don't have an account? Sign Up</Text>
+      <TouchableOpacity
+        onPress={() => navigation.navigate(AuthRoutes.SignUp)}
+        className="mt-4">
+        <Text className="text-center text-blue-600">
+          Don't have an account? Sign Up
+        </Text>
       </TouchableOpacity>
     </View>
   );
