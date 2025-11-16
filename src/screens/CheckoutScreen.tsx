@@ -21,6 +21,8 @@ import Ionicons from '@react-native-vector-icons/ionicons';
 import { MainRoutes } from '../navigation/Routes';
 import { createOrder, createRazorpayOrder } from '../api/apiClient';
 import RazorpayCheckout from 'react-native-razorpay';
+import { ENV } from '../env';
+
 
 const SlotChip = ({
   label,
@@ -125,14 +127,14 @@ const CheckoutScreen = () => {
         }
         const order = await createOrder(orderData);
         clearCart();
-        // navigation.navigate("OrderConfirmation", {order});
+        navigation.navigate("OrderConfirmation", {order});
       }
       else {
         //online payment flow with Razorpay
         const orderData = {
           amount: cartTotalPrice * 100, 
           currency: "INR",
-          receipt: `receipt_${Date.now}`,
+          receipt: `receipt_${Date.now()}`,
         }
         const razorpayOrder = await createRazorpayOrder(orderData);
         const cleanedContact = (user?.phone || '9999999999').replace(/\D/g, '').slice(-10);
@@ -140,7 +142,7 @@ const CheckoutScreen = () => {
           description: 'Order Payment',
           image: 'https://www.shutterstock.com/image-vector/secure-checkout-icon-black-white-600nw-2484143929.jpg',
           currency: razorpayOrder.currency,
-          key: process.env.RAZORPAY_KEY_ID || '',
+          key: ENV.RAZORPAY_KEY_ID || '',
           amount: razorpayOrder.amount.toString(),
           name: 'MedicineApp',
           order_id: razorpayOrder.id,
@@ -167,7 +169,7 @@ const CheckoutScreen = () => {
           }
           const order = await createOrder(fullOrderData);
           clearCart();
-          // navigation.navigate("OrderConfirmation", {order});
+          navigation.navigate("OrderConfirmation", {order});
         }
       }
     } catch (error) {
@@ -354,6 +356,8 @@ const CheckoutScreen = () => {
       </ScrollView>
       <View className="absolute left-4 right-4 bottom-6">
         <Pressable
+          onPress={handlePayment}
+          disabled={isProcessing}
           className={`bg-green-600 rounded-2xl py-4 flex-row justify-between items-center px-5 shadow-lg ${
             isProcessing ? 'opacity-50' : ''
           }`}>
@@ -365,7 +369,7 @@ const CheckoutScreen = () => {
             </Text>
           </View>
           <View className="bg-white px-4 py-2 rounded-lg">
-            <Text>{isProcessing ? 'Processing' : 'CONTINUE'}</Text>
+            <Text>{isProcessing ? 'Processing...' : 'CONTINUE'}</Text>
           </View>
         </Pressable>
       </View>
