@@ -80,3 +80,4 @@ export const login = async(data:{email:string, password:string}) => (await api.p
 export const createRazorpayOrder = async (data: {amount:number; currency:string; receipt:string}) => (await api.post("/orders/create-razorpay-order", data)).data;
 export const createOrder = async (data: {items: {productId: string; quantity:number; price:number}[]; totalAmount:number;address:any; paymentMethod:string; paymentId?:string; razorpayOrderId?:string}) => (await api.post("/orders", data)).data;
 export const fetchMyOrders = async() => (await api.get("/orders/my-orders")).data;
+export const googleLogin = async (idToken: string) => (await api.post('/auth/google-login', { idToken })).data;
